@@ -1,9 +1,9 @@
 #include <TaskScheduler.h>
-#include "CayenneDefines.h"
-#include "BlynkSimpleEsp8266.h"
-#include "CayenneWiFiClient.h"
+#include <CayenneDefines.h>
+#include <BlynkSimpleEsp8266.h>
+#include <CayenneWiFiClient.h>
 #include "CayenneAuth.h"
-#define CAYENNE_PRINT Serial  // Comment this out to disable prints and save space
+
 #define LED_PIN D0
 #define WATER_PIN D7
 
@@ -34,7 +34,7 @@ void setup() {
   pinMode(WATER_PIN, OUTPUT);
   digitalWrite(WATER_PIN, HIGH);
 
-  tWater.set(TASK_MINUTE, TASK_FOREVER, timerCallback, false);
+  tWater.set(TASK_MINUTE, TASK_FOREVER, timerCallback);
   scheduler.init();
   scheduler.addTask(tWater);
 }
@@ -44,6 +44,12 @@ void loop() {
   Cayenne.run();
 }
 
+void shutOff(){
+  digitalWrite(WATER_PIN, HIGH);
+  digitalWrite(LED_PIN, HIGH);
+  tWater.disable();
+}
+
 CAYENNE_CONNECTED() {
   static int isFirstConnect = true;
   if (isFirstConnect) {
@@ -51,26 +57,6 @@ CAYENNE_CONNECTED() {
     blinkLed();
   }
   isFirstConnect = false;
-}
-
-void blinkLed() {
-  digitalWrite(LED_PIN, LOW);    // turn the LED on (LOW)
-  delay(250);
-  digitalWrite(LED_PIN, HIGH);  // turn the LED off by making the voltage HIGH
-  delay(250);
-  digitalWrite(LED_PIN, LOW);
-  delay(250);
-  digitalWrite(LED_PIN, HIGH);
-  delay(250);
-  digitalWrite(LED_PIN, LOW);
-  delay(250);
-  digitalWrite(LED_PIN, HIGH);
-}
-
-void shutOff(){
-  digitalWrite(WATER_PIN, HIGH);
-  digitalWrite(LED_PIN, HIGH);
-  tWater.disable();
 }
 
 CAYENNE_IN(V0)
@@ -93,4 +79,18 @@ CAYENNE_IN(V1)
 {
   // get value sent from dashboard
   maxRuntime = getValue.asInt()/1000;
+}
+
+void blinkLed() {
+  digitalWrite(LED_PIN, LOW);    // turn the LED on (LOW)
+  delay(250);
+  digitalWrite(LED_PIN, HIGH);  // turn the LED off by making the voltage HIGH
+  delay(250);
+  digitalWrite(LED_PIN, LOW);
+  delay(250);
+  digitalWrite(LED_PIN, HIGH);
+  delay(250);
+  digitalWrite(LED_PIN, LOW);
+  delay(250);
+  digitalWrite(LED_PIN, HIGH);
 }
