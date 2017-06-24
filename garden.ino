@@ -20,6 +20,7 @@ void timerCallback() {
 
   if (minutesPassed >= maxRuntime) {
     Cayenne.virtualWrite(V0, 0);
+    shutOff();
   }
 }
 
@@ -33,7 +34,9 @@ void setup() {
   pinMode(WATER_PIN, OUTPUT);
   digitalWrite(WATER_PIN, HIGH);
 
-  tWater.set(TASK_MINUTE, TASK_FOREVER, &timerCallback);
+  tWater.set(TASK_MINUTE, TASK_FOREVER, timerCallback, false);
+  scheduler.init();
+  scheduler.addTask(tWater);
 }
 
 void loop() {
@@ -64,6 +67,12 @@ void blinkLed() {
   digitalWrite(LED_PIN, HIGH);
 }
 
+void shutOff(){
+  digitalWrite(WATER_PIN, HIGH);
+  digitalWrite(LED_PIN, HIGH);
+  tWater.disable();
+}
+
 CAYENNE_IN(V0)
 {
   // get value sent from dashboard
@@ -71,12 +80,12 @@ CAYENNE_IN(V0)
 
   // low trigger
   if (currentValue == 0) {
-    digitalWrite(WATER_PIN, HIGH);
-    tWater.disable();
+    shutOff();
   } else {
     minutesPassed = -1;
     tWater.enable();
     digitalWrite(WATER_PIN, LOW);
+    digitalWrite(LED_PIN, LOW);
   }
 }
 
