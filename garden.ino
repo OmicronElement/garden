@@ -9,19 +9,20 @@
 
 int minutesPassed = -1;
 int maxRuntime;
+bool timeChanged = false;
+bool autoShutOff = false;
 
 Scheduler scheduler;
 Task tWater;
 
 void timerCallback() {
   minutesPassed++;
-
-  Cayenne.virtualWrite(V2, minutesPassed);
-
   if (minutesPassed >= maxRuntime) {
-    Cayenne.virtualWrite(V0, 0);
-    shutOff();
-  }
+      shutOff();
+      autoShutOff = true;
+    }
+  
+  timeChanged = true;
 }
 
 void setup() {
@@ -34,7 +35,7 @@ void setup() {
   pinMode(WATER_PIN, OUTPUT);
   digitalWrite(WATER_PIN, HIGH);
 
-  tWater.set(TASK_MINUTE, TASK_FOREVER, timerCallback);
+  tWater.set(TASK_SECOND, TASK_FOREVER, timerCallback);
   scheduler.init();
   scheduler.addTask(tWater);
 }
@@ -42,6 +43,16 @@ void setup() {
 void loop() {
   scheduler.execute();
   Cayenne.run();
+
+  if(autoShutOff){
+    Cayenne.virtualWrite(V0, 0);
+    autoShutOff = false;
+  }
+
+  if(timeChanged){
+    Cayenne.virtualWrite(V2, minutesPassed);
+    timeChanged = false;
+  }
 }
 
 void shutOff(){
