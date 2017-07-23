@@ -2,10 +2,13 @@
 #include <CayenneDefines.h>
 #include <BlynkSimpleEsp8266.h>
 #include <CayenneWiFiClient.h>
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
 #include "CayenneAuth.h"
 
 #define LED_PIN D0
 #define WATER_PIN D7
+#define TEMP_SENSOR_PIN D1
 
 int minutesPassed = -1;
 int maxRuntime;
@@ -14,6 +17,9 @@ bool autoShutOff = false;
 
 Scheduler scheduler;
 Task tWater;
+Task tTemp;
+
+DHT dht(TEMP_SENSOR_PIN, DHT22);
 
 void timerCallback() {
   minutesPassed++;
@@ -28,16 +34,35 @@ void timerCallback() {
 void setup() {
   Serial.begin(115200);
   Cayenne.begin(token, ssid, pwd);
-
+  dht.begin();
+  
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);
 
   pinMode(WATER_PIN, OUTPUT);
   digitalWrite(WATER_PIN, HIGH);
 
-  tWater.set(TASK_SECOND, TASK_FOREVER, timerCallback);
+  tWater.set(TASK_MINUTE, TASK_FOREVER, timerCallback);
+  tTemp.set(2000, TASK_FOREVER, sendDHT);
   scheduler.init();
   scheduler.addTask(tWater);
+  scheduler.addTask(tTemp);
+  tTemp.enable();
+}
+
+void sendDHT()
+{
+  float temp = dht.readTemperature(true);
+  float humidity = dht.readHumidity();
+
+  if (isnan(humidity) || isnan(temp)) {
+    Cayenne.virtualWrite(V3, -1);
+    Cayenne.virtualWrite(V4, -1);
+    return;
+  }
+  
+  Cayenne.virtualWrite(V3, temp);
+  Cayenne.virtualWrite(V4, humidity);
 }
 
 void loop() {
@@ -88,9 +113,18 @@ CAYENNE_IN(V0)
 
 CAYENNE_IN(V1)
 {
-  // get value sent from dashboard
-  maxRuntime = getValue.asInt()/1000;
+  maxRuntime = getValue.asInt();
 }
+
+//CAYENNE_OUT(V3)
+//{
+//  Cayenne.virtualWrite(V3, dht.readTemperature(true));
+//}
+//
+//CAYENNE_OUT(V4)
+//{
+//  Cayenne.virtualWrite(V4, dht.readHumidity());
+//}
 
 void blinkLed() {
   digitalWrite(LED_PIN, LOW);    // turn the LED on (LOW)
